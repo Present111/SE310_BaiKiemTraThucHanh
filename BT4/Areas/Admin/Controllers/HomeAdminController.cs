@@ -198,5 +198,191 @@ namespace BT4.Areas.Admin.Controllers
 
             return View(model); // Nếu dữ liệu không hợp lệ, trả lại form với thông tin lỗi
         }
+        [Route("DanhMucNhanVien")]
+        [HttpGet]
+        public IActionResult DanhMucNhanVien(int? page)
+        {
+            int pageSize = 10; // số lượng nhân viên mỗi trang
+            int pageNumber = page ?? 1;
+
+            // Lấy danh sách nhân viên từ cơ sở dữ liệu và sắp xếp theo MaNhanVien
+            var nhanViens = db.TNhanViens
+                .OrderBy(nv => nv.MaNhanVien)
+                .ToPagedList(pageNumber, pageSize);
+
+            return View(nhanViens);
+        }
+        // GET: Xác nhận xóa nhân viên (nếu muốn hiển thị một trang xác nhận)
+        [Route("XoaNhanVien")]
+        [HttpGet]
+        public IActionResult XoaNhanVien(string maNhanVien)
+        {
+            var nhanVien = db.TNhanViens.FirstOrDefault(nv => nv.MaNhanVien == maNhanVien);
+            if (nhanVien == null)
+            {
+                return NotFound(); // Không tìm thấy nhân viên
+            }
+
+            return View(nhanVien); // Trả về trang xác nhận xóa
+        }
+
+        // POST: Xóa nhân viên
+        [Route("XoaNhanVien")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult XacNhanXoaNhanVien(string maNhanVien)
+        {
+            var nhanVien = db.TNhanViens.FirstOrDefault(nv => nv.MaNhanVien == maNhanVien);
+            if (nhanVien == null)
+            {
+                return NotFound(); // Không tìm thấy nhân viên
+            }
+
+            // Kiểm tra xem nhân viên có hóa đơn nào không
+            bool hasHoaDon = db.THoaDonBans.Any(hd => hd.MaNhanVien == maNhanVien);
+            if (hasHoaDon)
+            {
+                TempData["Message"] = "Không thể xóa vì nhân viên này có liên kết với hóa đơn.";
+                return RedirectToAction("DanhMucNhanVien"); // Quay về trang danh sách nhân viên
+            }
+
+            // Lấy username của nhân viên để xóa bản ghi trong bảng TUser nếu có
+            var username = nhanVien.Username;
+
+            // Xóa nhân viên khỏi bảng TNhanVien
+            db.TNhanViens.Remove(nhanVien);
+
+            // Nếu có username, xóa user tương ứng trong bảng TUser
+            if (!string.IsNullOrEmpty(username))
+            {
+                var user = db.TUsers.FirstOrDefault(u => u.Username == username);
+                if (user != null)
+                {
+                    db.TUsers.Remove(user);
+                }
+            }
+
+            // Thực hiện lưu thay đổi vào cơ sở dữ liệu
+            try
+            {
+                db.SaveChanges();
+                TempData["Message"] = "Xóa nhân viên thành công.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Đã xảy ra lỗi khi xóa nhân viên: " + ex.Message;
+            }
+
+            return RedirectToAction("DanhMucNhanVien"); // Quay về trang danh sách nhân viên
+        }
+
+        [Route("ThemNhanVienMoi")]
+        [HttpGet]
+        public IActionResult ThemNhanVienMoi()
+        {
+            // Dữ liệu cho các dropdown nếu cần
+            ViewBag.ChucVu = new SelectList(new List<string> { "Sales", "Manager", "Admin" }, "ChucVu"); // Ví dụ cho chức vụ
+
+            return View();
+        }
+        [Route("ThemNhanVienMoi")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ThemNhanVienMoi(TNhanVien nhanVien, string password)
+        {
+            if (ModelState.IsValid)
+            {
+                using var transaction = db.Database.BeginTransaction();
+                try
+                {
+                    // Kiểm tra xem MaNhanVien có trùng không
+                    if (db.TNhanViens.Any(nv => nv.MaNhanVien == nhanVien.MaNhanVien))
+                    {
+                        ModelState.AddModelError("MaNhanVien", "Mã nhân viên đã tồn tại.");
+                        return View(nhanVien);
+                    }
+
+                    // Kiểm tra xem Username có trùng không
+                    if (db.TUsers.Any(u => u.Username == nhanVien.Username))
+                    {
+                        ModelState.AddModelError("Username", "Username đã tồn tại.");
+                        return View(nhanVien);
+                    }
+
+                    // Tạo tài khoản người dùng mới
+                    var user = new TUser
+                    {
+                        Username = nhanVien.Username,
+                        Password = password, // Nên mã hóa mật khẩu trước khi lưu
+                        LoaiUser = 0 // 1 = Nhân viên, 0 = Khách hàng, có thể tùy chỉnh theo logic của bạn
+                    };
+                    db.TUsers.Add(user);
+
+                    // Thêm nhân viên mới vào cơ sở dữ liệu
+                    db.TNhanViens.Add(nhanVien);
+
+                    // Lưu thay đổi vào database
+                    db.SaveChanges();
+
+                    // Commit transaction
+                    transaction.Commit();
+
+                    TempData["Message"] = "Thêm nhân viên mới thành công!";
+                    return RedirectToAction("DanhMucNhanVien");
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    ModelState.AddModelError("", "Đã có lỗi xảy ra: " + ex.Message);
+                }
+            }
+
+            // Nếu không hợp lệ, hiển thị lại form với các lỗi
+            return View(nhanVien);
+        }
+        // GET: Hiển thị form sửa thông tin nhân viên
+        [Route("SuaNhanVien")]
+        [HttpGet]
+        public IActionResult SuaNhanVien(string maNhanVien)
+        {
+            var nhanVien = db.TNhanViens.FirstOrDefault(nv => nv.MaNhanVien == maNhanVien);
+            if (nhanVien == null)
+            {
+                return NotFound(); // Nếu không tìm thấy nhân viên
+            }
+            return View(nhanVien); // Trả về View với thông tin của nhân viên
+        }
+
+        // POST: Cập nhật thông tin nhân viên
+        [Route("SuaNhanVien")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SuaNhanVien(TNhanVien nhanVien)
+        {
+            if (ModelState.IsValid)
+            {
+                var nhanVienToUpdate = db.TNhanViens.FirstOrDefault(nv => nv.MaNhanVien == nhanVien.MaNhanVien);
+                if (nhanVienToUpdate == null)
+                {
+                    return NotFound(); // Không tìm thấy nhân viên
+                }
+
+                // Chỉ cập nhật các thông tin khác
+                nhanVienToUpdate.TenNhanVien = nhanVien.TenNhanVien;
+                nhanVienToUpdate.NgaySinh = nhanVien.NgaySinh;
+                nhanVienToUpdate.SoDienThoai1 = nhanVien.SoDienThoai1;
+                nhanVienToUpdate.SoDienThoai2 = nhanVien.SoDienThoai2;
+                nhanVienToUpdate.DiaChi = nhanVien.DiaChi;
+                nhanVienToUpdate.ChucVu = nhanVien.ChucVu;
+                nhanVienToUpdate.GhiChu = nhanVien.GhiChu;
+
+                db.SaveChanges(); // Lưu thay đổi vào cơ sở dữ liệu
+                TempData["Message"] = "Cập nhật thông tin nhân viên thành công!";
+                return RedirectToAction("DanhMucNhanVien"); // Quay lại trang danh sách nhân viên
+            }
+            return View(nhanVien); // Nếu dữ liệu không hợp lệ, hiển thị lại form
+        }
+
+
     }
 }

@@ -22,6 +22,7 @@
             <th>Số điện thoại</th>
             <th>Địa chỉ</th>
             <th>Loại khách hàng</th>
+            <th>UserName</th>
             <th>Ghi chú</th>
             <th>Actions</th>
         </tr>
@@ -42,6 +43,7 @@
                 <td>@Html.DisplayFor(modelItem => item.SoDienThoai)</td>
                 <td>@Html.DisplayFor(modelItem => item.DiaChi)</td>
                 <td>@Html.DisplayFor(modelItem => item.LoaiKhachHang)</td>
+                <td>@Html.DisplayFor(modelItem => item.Username)</td>
                 <td>@Html.DisplayFor(modelItem => item.GhiChu)</td>
                 <td>
                     <a asp-action="SuaKhachHang" asp-route-maKhachHang="@item.MaKhanhHang" class="btn btn-primary btn-sm">
