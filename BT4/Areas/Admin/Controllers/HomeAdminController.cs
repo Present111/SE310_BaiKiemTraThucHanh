@@ -106,5 +106,15 @@ namespace BT4.Areas.Admin.Controllers
             TempData["Message"] = "Sản phẩm đã được xóa";
             return RedirectToAction("DanhMucSanPham", "HomeAdmin");
         }
+        [Authentication]
+        [Route("danhmuckhachhang")]
+        public IActionResult DanhMucKhachHang(int? page)
+        {
+            int pageSize = 12;
+            int pageNumber = page == null || page < 0 ? 1 : page.Value;
+            var lstnguoidung = db.TKhachHangs.AsNoTracking().OrderBy(x => x.MaKhanhHang);
+            PagedList<TKhachHang> lst = new PagedList<TKhachHang>(lstnguoidung, pageNumber, pageSize);
+            return View(lst);
+        }
     }
 }
