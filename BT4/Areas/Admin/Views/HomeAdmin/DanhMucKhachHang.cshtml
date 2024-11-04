@@ -1,70 +1,68 @@
-﻿@model IEnumerable<BT4.Models.TKhachHang>
+﻿@using BT4.Models
+@using X.PagedList.Mvc.Core;
+@model X.PagedList.IPagedList<TKhachHang>
 
 @{
-    ViewData["Title"] = "DanhMucNguoiDung";
+    ViewData["Title"] = "Danh Mục Khách Hàng";
     Layout = "~/Areas/Admin/Views/Shared/_LayoutAdmin.cshtml";
 }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>@ViewData["Title"]</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-pzjw8f+ua7Kw1TIqjsTITFj00ujB5YkPjV8f3qFlRRJpXt4WnPg2Oh23Pp6rCTI3" crossorigin="anonymous">
-    <!-- Font Awesome for icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" integrity="sha384-jLKHWMf9QkJ0/ZiCb6PrDq7kW8BGVyb3KTlGfiTVdM6T5v5TjA/8bHL6d5V7Vnd1" crossorigin="anonymous">
-</head>
-<body>
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-    <div class="container mt-5">
-        <h1 class="text-primary">Danh Mục Khách Hàng</h1>
-        <p>
-            <a asp-action="Create" class="btn btn-success mb-3">
-                <i class="fas fa-plus-circle"></i> Create New
-            </a>
-        </p>
+<h3>Danh mục khách hàng</h3>
 
-        <table class="table table-striped table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>@Html.DisplayNameFor(model => model.TenKhachHang)</th>
-                    <th>@Html.DisplayNameFor(model => model.NgaySinh)</th>
-                    <th>@Html.DisplayNameFor(model => model.SoDienThoai)</th>
-                    <th>@Html.DisplayNameFor(model => model.DiaChi)</th>
-                    <th>@Html.DisplayNameFor(model => model.LoaiKhachHang)</th>
-                    <th>@Html.DisplayNameFor(model => model.GhiChu)</th>
-                    <th>Username</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td>@Html.DisplayFor(modelItem => item.TenKhachHang)</td>
-                        <td>@Html.DisplayFor(modelItem => item.NgaySinh)</td>
-                        <td>@Html.DisplayFor(modelItem => item.SoDienThoai)</td>
-                        <td>@Html.DisplayFor(modelItem => item.DiaChi)</td>
-                        <td>@Html.DisplayFor(modelItem => item.LoaiKhachHang)</td>
-                        <td>@Html.DisplayFor(modelItem => item.GhiChu)</td>
-                        <td>@Html.DisplayFor(modelItem => item.Username)</td>
-                        <td>
-                            <a asp-action="Edit" asp-route-id="@item.MaKhanhHang" class="btn btn-sm btn-primary">
-                                <i class="fas fa-edit"></i> Edit
-                            </a>
-                            <a asp-action="Delete" asp-route-id="@item.MaKhanhHang" class="btn btn-sm btn-danger">
-                                <i class="fas fa-trash-alt"></i> Delete
-                            </a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
 
-    <!-- Bootstrap and jQuery scripts -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfUWFxeeHP7aomZbJp4jl+q3aC6tktKf6KKG7e9iF" crossorigin="anonymous"></script>
-</body>
-</html>
+<p>@TempData["Message"]</p>
+
+<table class="table">
+    <thead>
+        <tr class="table-warning">
+            <th>Tên khách hàng</th>
+            <th>Ngày sinh</th>
+            <th>Số điện thoại</th>
+            <th>Địa chỉ</th>
+            <th>Loại khách hàng</th>
+            <th>Ghi chú</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            int i = 0;
+            string cls = "table-success";
+        }
+
+        @foreach (var item in Model)
+        {
+            i++;
+            cls = (i % 2 == 0) ? "table-primary" : "table-success";
+            <tr class="@cls">
+                <td>@Html.DisplayFor(modelItem => item.TenKhachHang)</td>
+                <td>@Html.DisplayFor(modelItem => item.NgaySinh)</td>
+                <td>@Html.DisplayFor(modelItem => item.SoDienThoai)</td>
+                <td>@Html.DisplayFor(modelItem => item.DiaChi)</td>
+                <td>@Html.DisplayFor(modelItem => item.LoaiKhachHang)</td>
+                <td>@Html.DisplayFor(modelItem => item.GhiChu)</td>
+                <td>
+                    <a asp-action="SuaKhachHang" asp-route-maKhachHang="@item.MaKhanhHang" class="btn btn-primary btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <!-- Form để gửi yêu cầu xóa -->
+                    <form asp-action="XacNhanXoaKhachHang" method="post" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này?');">
+                        <input type="hidden" name="maKhachHang" value="@item.MaKhanhHang" />
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Phân trang -->
+@Html.PagedListPager(Model, page => Url.Action("DanhMucKhachHang", new { page = page }), new PagedListRenderOptions
+{
+    LiElementClasses = new List<string> { "page-item" },
+    PageClasses = new List<string> { "page-link" }
+})

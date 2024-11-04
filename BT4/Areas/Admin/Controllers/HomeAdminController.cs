@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using X.PagedList;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using BT4.Models.Authentication;
+using X.PagedList.Extensions;
 
 namespace BT4.Areas.Admin.Controllers
 {
@@ -110,11 +111,46 @@ namespace BT4.Areas.Admin.Controllers
         [Route("danhmuckhachhang")]
         public IActionResult DanhMucKhachHang(int? page)
         {
-            int pageSize = 12;
-            int pageNumber = page == null || page < 0 ? 1 : page.Value;
-            var lstnguoidung = db.TKhachHangs.AsNoTracking().OrderBy(x => x.MaKhanhHang);
-            PagedList<TKhachHang> lst = new PagedList<TKhachHang>(lstnguoidung, pageNumber, pageSize);
-            return View(lst);
+            int pageSize = 10; // Số lượng khách hàng mỗi trang
+            int pageNumber = page ?? 1; // Trang hiện tại
+
+            // Lấy tất cả khách hàng, sắp xếp và phân trang
+            var lstKhachHang = db.TKhachHangs.OrderBy(kh => kh.TenKhachHang).ToPagedList(pageNumber, pageSize);
+
+            return View(lstKhachHang);
         }
+        // GET: Xác nhận xóa khách hàng (chỉ cần nếu bạn muốn hiển thị một trang xác nhận)
+        [Route("XoaKhachHang")]
+        [HttpGet]
+        public IActionResult XoaKhachHang(string maKhachHang)
+        {
+            var khachHang = db.TKhachHangs.FirstOrDefault(kh => kh.MaKhanhHang == maKhachHang);
+            if (khachHang == null)
+            {
+                return NotFound(); // Không tìm thấy khách hàng
+            }
+
+            return View(khachHang); // Trả về trang xác nhận xóa
+        }
+
+        // POST: Xóa khách hàng
+        [Route("XoaKhachHang")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult XacNhanXoaKhachHang(string maKhachHang)
+        {
+            var khachHang = db.TKhachHangs.FirstOrDefault(kh => kh.MaKhanhHang == maKhachHang);
+            if (khachHang == null)
+            {
+                return NotFound(); // Không tìm thấy khách hàng
+            }
+
+            db.TKhachHangs.Remove(khachHang); // Xóa khách hàng khỏi cơ sở dữ liệu
+            db.SaveChanges(); // Lưu thay đổi
+
+            TempData["Message"] = "Xóa khách hàng thành công.";
+            return RedirectToAction("DanhMucKhachHang"); // Quay về trang danh sách khách hàng
+        }
+
     }
 }
