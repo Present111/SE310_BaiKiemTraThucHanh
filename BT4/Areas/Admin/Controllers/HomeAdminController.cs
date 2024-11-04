@@ -34,19 +34,19 @@ namespace BT4.Areas.Admin.Controllers
             return View(lst);
         }
 
-        
+
         [Route("ThemSanPhamMoi")]
         [HttpGet]
         public IActionResult ThemSanPhamMoi()
         {
             ViewBag.MaChatLieu = new SelectList(db.TChatLieus.ToList(), "MaChatLieu", "ChatLieu");
-            ViewBag.MaHangSx = new SelectList(db.THangSxes.ToList(), "MaHangSx", "HangSx"); 
+            ViewBag.MaHangSx = new SelectList(db.THangSxes.ToList(), "MaHangSx", "HangSx");
             ViewBag.MaNuocSx = new SelectList(db.TQuocGia.ToList(), "MaNuoc", "TenNuoc");
             ViewBag.MaLoai = new SelectList(db.TLoaiSps.ToList(), "MaLoai", "Loai");
             ViewBag.MaDt = new SelectList(db.TLoaiDts.ToList(), "MaDt", "TenLoai");
             return View();
         }
-        
+
         [Route("ThemSanPhamMoi")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -61,7 +61,7 @@ namespace BT4.Areas.Admin.Controllers
             return View(sanPham);
         }
 
-       
+
         [Route("SuaSanPham")]
         [HttpGet]
         public IActionResult SuaSanPham(string maSamPham)
@@ -74,7 +74,7 @@ namespace BT4.Areas.Admin.Controllers
             var sanPham = db.TDanhMucSps.Find(maSamPham);
             return View(sanPham);
         }
-       
+
         [Route("SuaSanPham")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -84,18 +84,18 @@ namespace BT4.Areas.Admin.Controllers
             {
                 db.Entry(sanPham).State = EntityState.Modified;
                 db.SaveChanges();
-                return RedirectToAction("DanhMucSanPham","HomeAdmin");
+                return RedirectToAction("DanhMucSanPham", "HomeAdmin");
             }
             return View(sanPham);
         }
-        
+
         [Route("XoaSanPham")]
         [HttpGet]
         public IActionResult XoaSanPham(String maSanPham)
         {
             TempData["Message"] = "";
             var chiTietSanPham = db.TChiTietSanPhams.Where(x => x.MaSp == maSanPham).ToList();
-            if (chiTietSanPham.Count>0)
+            if (chiTietSanPham.Count > 0)
             {
                 TempData["Message"] = "Không xóa được sản phẩm này";
                 return RedirectToAction("DanhMucSanPham", "HomeAdmin");
@@ -151,6 +151,52 @@ namespace BT4.Areas.Admin.Controllers
             TempData["Message"] = "Xóa khách hàng thành công.";
             return RedirectToAction("DanhMucKhachHang"); // Quay về trang danh sách khách hàng
         }
+        // GET: Hiển thị form chỉnh sửa
+        [Route("SuaKhachHang")]
+        [HttpGet]
+        public IActionResult SuaKhachHang(string maKhachHang)
+        {
+            // Tìm khách hàng theo mã
+            var khachHang = db.TKhachHangs.FirstOrDefault(kh => kh.MaKhanhHang == maKhachHang);
+            if (khachHang == null)
+            {
+                return NotFound(); // Không tìm thấy khách hàng
+            }
 
+            return View(khachHang); // Trả về form với thông tin khách hàng
+        }
+
+        // POST: Xác nhận và lưu thay đổi
+        [Route("SuaKhachHang")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SuaKhachHang(TKhachHang model)
+        {
+            if (ModelState.IsValid)
+            {
+                // Tìm khách hàng trong DB
+                var khachHang = db.TKhachHangs.FirstOrDefault(kh => kh.MaKhanhHang == model.MaKhanhHang);
+                if (khachHang == null)
+                {
+                    return NotFound();
+                }
+
+                // Cập nhật thông tin khách hàng
+                khachHang.TenKhachHang = model.TenKhachHang;
+                khachHang.NgaySinh = model.NgaySinh;
+                khachHang.SoDienThoai = model.SoDienThoai;
+                khachHang.DiaChi = model.DiaChi;
+                khachHang.LoaiKhachHang = model.LoaiKhachHang;
+                khachHang.GhiChu = model.GhiChu;
+
+                // Lưu thay đổi vào cơ sở dữ liệu
+                db.SaveChanges();
+
+                TempData["Message"] = "Cập nhật thông tin khách hàng thành công.";
+                return RedirectToAction("DanhMucKhachHang");
+            }
+
+            return View(model); // Nếu dữ liệu không hợp lệ, trả lại form với thông tin lỗi
+        }
     }
 }
